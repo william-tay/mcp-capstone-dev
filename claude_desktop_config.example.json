@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "filesystem-python": {
+      "command": "C:\\Users\\YourName\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+      "args": [
+        "C:\\Users\\YourName\\Documents\\filesystem-mcp\\main.py"
+      ]
+    }
+  }
+}
