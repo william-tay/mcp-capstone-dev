@@ -84,7 +84,7 @@ your-project-folder/
 Example folder:
 
 ```text
-C:\Users\kaido\Documents\filesystem-mcp\main.py
+C:\Users\USER\Documents\filesystem-mcp\main.py
 ```
 
 ---
@@ -105,7 +105,7 @@ This means:
 So if Claude Desktop is running under your Windows account, the workspace will usually be:
 
 ```text
-C:\Users\kaido\Documents\my_workspace
+C:\Users\USER\Documents\my_workspace
 ```
 
 If another user runs the same server on their computer, it will use **their** Documents folder automatically.
@@ -239,22 +239,22 @@ Example merged config:
     "ghidra": {
       "command": "python",
       "args": [
-        "C:/Users/kaido/Documents/GhidraMCP-release-1-2/bridge_mcp_ghidra.py",
+        "C:/Users/USER/Documents/GhidraMCP-release-1-2/bridge_mcp_ghidra.py",
         "--ghidra-server",
         "http://127.0.0.1:8080/"
       ]
     },
     "mcp-forensic-toolkit": {
-      "command": "C:\\Users\\kaido\\AppData\\Local\\pypoetry\\Cache\\virtualenvs\\mcp-forensic-toolkit-oRbbFZcU-py3.11\\Scripts\\mcp.exe",
+      "command": "C:\\Users\\USER\\AppData\\Local\\pypoetry\\Cache\\virtualenvs\\mcp-forensic-toolkit-oRbbFZcU-py3.11\\Scripts\\mcp.exe",
       "args": [
         "run",
-        "C:\\Users\\kaido\\Desktop\\ForesnsicTools\\mcp-forensic-toolkit\\mcp_forensic_toolkit\\server.py"
+        "C:\\Users\\USER\\Desktop\\ForesnsicTools\\mcp-forensic-toolkit\\mcp_forensic_toolkit\\server.py"
       ]
     },
     "filesystem": {
       "command": "python",
       "args": [
-        "C:\\Users\\kaido\\Documents\\filesystem-mcp\\main.py"
+        "C:\\Users\\USER\\Documents\\filesystem-mcp\\main.py"
       ]
     }
   },
@@ -280,7 +280,7 @@ On Windows, Claude Desktop commonly uses:
 A typical full path looks like:
 
 ```text
-C:\Users\kaido\AppData\Roaming\Claude\claude_desktop_config.json
+C:\Users\USER\AppData\Roaming\Claude\claude_desktop_config.json
 ```
 
 If you already edited this file for other MCP servers, just add the `filesystem` entry into that same file.
@@ -312,7 +312,7 @@ If that happens, replace this:
 with the full path to Python, for example:
 
 ```json
-"command": "C:\\Users\\kaido\\AppData\\Local\\Programs\\Python\\Python311\\python.exe"
+"command": "C:\\Users\\USER\\AppData\\Local\\Programs\\Python\\Python311\\python.exe"
 ```
 
 Then keep the script path in `args`.
@@ -321,9 +321,9 @@ Example:
 
 ```json
 "filesystem": {
-  "command": "C:\\Users\\kaido\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+  "command": "C:\\Users\\USER\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
   "args": [
-    "C:\\Users\\kaido\\Documents\\filesystem-mcp\\main.py"
+    "C:\\Users\\USER\\Documents\\filesystem-mcp\\main.py"
   ]
 }
 ```
