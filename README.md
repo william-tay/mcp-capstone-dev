@@ -1,339 +1,395 @@
 # Filesystem MCP Server for Claude Desktop
 
-This project is a local **Python MCP server** that gives Claude Desktop file-system tools inside **one allowed workspace folder**.
+A local MCP server that lets Claude Desktop work with files and folders inside one safe workspace directory.
 
 It can:
-- create files and folders
+- create files
 - read files
-- write and append to files
+- write files
+- append to files
 - replace text in files
 - insert text at a line number
+- delete files
+- create directories
+- remove directories
 - move and copy files/folders
-- search by filename
-- search inside files
-- show metadata
-- show a directory tree
-- read and write binary files using base64
+- search for files by name
+- search file contents
+- show file info
+- print a directory tree
+- read/write binary files with base64
 
-## What changed to make it Claude Desktop friendly
+## Important Safety Note
 
-This version is written for **stdio** use with Claude Desktop.
+This server is restricted to **one workspace folder** only.
 
-That matters because MCP’s docs warn that stdio servers must **not write to stdout**, or the JSON-RPC protocol can break. This version only uses normal `print()` calls in the separate `test` mode, and runs Claude Desktop mode with `mcp.run(transport="stdio")` and no startup stdout output.
+The code now uses the current user's home folder automatically:
 
-## Files in this folder
+```python
+ROOT_DIR = (Path.home() / "Documents" / "my_workspace").resolve()
+```
 
-- `main.py` — the MCP server Claude Desktop launches
-- `README.md` — this setup guide
-- `claude_desktop_config.example.json` — a starter config you can copy into Claude Desktop’s config file
-- `requirements.txt` — Python dependency list
+That means the workspace will normally be created here for whoever runs it:
+
+```text
+C:\Users\<their-username>\Documents\my_workspace
+```
+
+So you do **not** need to hardcode a Windows username into the script anymore.
 
 ---
 
 ## 1. Requirements
 
 You need:
-- **Windows or macOS** with Claude Desktop installed
-- **Python 3.10 or newer**
-- the **Python MCP SDK 1.2.0 or newer**
+- Python 3.10 or newer
+- the MCP Python package that provides `FastMCP`
 
-The current MCP docs say Python MCP servers need **Python 3.10+** and the **Python MCP SDK 1.2.0+**.
+Your script imports:
+
+```python
+from mcp.server.fastmcp import FastMCP
+```
+
+So you must have that installed in the Python environment you use to run the server.
 
 ---
 
-## 2. Put the files in a folder
+## 2. Project Files
 
-Create a folder for the project, for example:
-
-```text
-C:\Users\YourName\Documents\filesystem-mcp
-```
-
-Put these files in it:
+Your project can look like this:
 
 ```text
-filesystem-mcp/
+your-project-folder/
+│
 ├── main.py
 ├── README.md
-├── claude_desktop_config.example.json
-└── requirements.txt
+└── claude_desktop_config.json
+```
+
+- `main.py` = your filesystem MCP server code
+- `README.md` = this file
+- `claude_desktop_config.json` = your Claude Desktop config example
+
+---
+
+## 3. Save the Server Code
+
+1. Open a code editor like VS Code.
+2. Create a folder for your project.
+3. Create a file named `main.py`.
+4. Paste the full filesystem MCP server code into `main.py`.
+5. Save the file.
+
+Example folder:
+
+```text
+C:\Users\kaido\Documents\filesystem-mcp\main.py
 ```
 
 ---
 
-## 3. Edit the workspace folder in `main.py`
+## 4. Workspace Folder Behavior
 
-Open `main.py` and find this line:
+Inside `main.py`, the server now uses:
 
 ```python
-ROOT_DIR = Path(r"C:\Users\YourName\Documents\my_workspace").resolve()
+ROOT_DIR = (Path.home() / "Documents" / "my_workspace").resolve()
 ```
 
-Change it to the real folder you want Claude to manage.
+This means:
+- it automatically uses the current Windows user
+- it creates the workspace folder if it does not exist
+- it creates a `README.txt` starter file inside the workspace the first time it runs
 
-Example:
+So if Claude Desktop is running under your Windows account, the workspace will usually be:
 
-```python
-ROOT_DIR = Path(r"C:\Users\Gwen\Documents\my_workspace").resolve()
+```text
+C:\Users\kaido\Documents\my_workspace
 ```
 
-When the server starts, it automatically creates that folder if it does not already exist.
-It also creates a small `README.txt` starter file in that workspace.
+If another user runs the same server on their computer, it will use **their** Documents folder automatically.
 
 ---
 
-## 4. Install Python packages
+## 5. Install Python
 
-Open **Command Prompt** in your project folder and run:
+If Python is not already installed:
 
-```bat
-python -m pip install -r requirements.txt
+1. Download Python from the official Python website.
+2. Install it.
+3. Make sure Python is added to PATH during installation.
+
+To check that Python works, open Command Prompt or PowerShell and run:
+
+```bash
+python --version
 ```
 
-If `python` does not work, try:
+If that does not work, try:
 
-```bat
-py -m pip install -r requirements.txt
+```bash
+py --version
 ```
 
 ---
 
-## 5. Test the server by itself first
+## 6. Install the MCP Package
 
-Before involving Claude Desktop, make sure the script works on its own.
+Open Command Prompt or PowerShell and install the package:
 
-Run:
+```bash
+python -m pip install mcp
+```
 
-```bat
+If your system uses `py`, you can also do:
+
+```bash
+py -m pip install mcp
+```
+
+To test whether the import works, run:
+
+```bash
 python main.py test
 ```
 
-You should get a simple local test prompt.
+If you get an import error, the package is not installed in the Python environment you are using.
 
-Try these commands:
+---
+
+## 7. Test the Server Locally First
+
+Before connecting it to Claude Desktop, test it locally.
+
+From the folder containing `main.py`, run:
+
+```bash
+python main.py test
+```
+
+This starts a simple local test mode.
+
+Example commands:
 
 ```text
 list .
 read README.txt
+write sample.txt hello
+append sample.txt more text
+mkdir docs
 tree .
-write sample.txt hello from test mode
-list .
 quit
 ```
 
-If that works, the basic file logic is working.
+This test mode is only for manual testing.
 
 ---
 
-## 6. Find your Python executable path
+## 8. Important Claude Desktop Compatibility Note
 
-Claude Desktop is most reliable when you give it an **absolute path** to Python instead of just `python`.
+In normal MCP mode, the server uses:
 
-In Command Prompt, run:
-
-```bat
-where python
+```python
+mcp.run(transport="stdio")
 ```
 
-You will get a path like one of these:
+The script should **not print to stdout** in normal MCP mode, because Claude Desktop communicates with the server over stdio.
 
-```text
-C:\Users\YourName\AppData\Local\Programs\Python\Python311\python.exe
+That is why the normal startup section should look like this:
+
+```python
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1].lower() == "test":
+        _run_local_test()
+    else:
+        mcp.run(transport="stdio")
 ```
 
-or:
-
-```text
-C:\Python311\python.exe
-```
-
-Copy the full path.
+The `print(...)` calls are fine in test mode, but do not add normal startup prints in MCP mode.
 
 ---
 
-## 7. Find your project file path
+## 9. Add It to Claude Desktop
 
-You also need the full path to `main.py`.
+Open your Claude Desktop config and add the filesystem server under `mcpServers`.
 
 Example:
-
-```text
-C:\Users\YourName\Documents\filesystem-mcp\main.py
-```
-
----
-
-## 8. Open Claude Desktop config
-
-The current MCP docs show that Claude Desktop can be configured through its developer config file, and the docs list the file location as:
-
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-
-### Easiest way
-
-In Claude Desktop:
-1. Open **Settings**
-2. Open **Developer**
-3. Click **Edit Config**
-
-That opens the right file automatically.
-
----
-
-## 9. Paste in the MCP config
-
-Replace the contents with a config like this.
-
-### Windows example
 
 ```json
 {
   "mcpServers": {
-    "filesystem-python": {
-      "command": "C:\\Users\\YourName\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+    "filesystem": {
+      "command": "python",
       "args": [
-        "C:\\Users\\YourName\\Documents\\filesystem-mcp\\main.py"
+        "C:\\Users\\USER\\Documents\\filesystem-mcp\\main.py"
       ]
     }
   }
 }
 ```
 
-### Important
+If you already have other MCP servers, just add `filesystem` beside them.
 
-- Use the **absolute path** to `python.exe`
-- Use the **absolute path** to `main.py`
-- Do **not** use relative paths
+Example merged config:
 
-The MCP debugging docs recommend absolute paths because the working directory for stdio servers launched by the client may be undefined.
-
----
-
-## 10. Restart Claude Desktop
-
-After saving the config:
-
-1. Completely quit Claude Desktop
-2. Open it again
-
-If the server connects properly, you should be able to see MCP tools from the chat UI / connectors area.
-Claude’s help docs say you can also check **Developer settings** for connection status and logs.
-
----
-
-## 11. First test prompts to try in Claude Desktop
-
-Once Claude Desktop is restarted, try prompts like:
-
-- `What is my allowed root directory?`
-- `List the files in the workspace.`
-- `Create a file named notes.txt that says hello.`
-- `Make a folder named drafts.`
-- `Search for txt files in the workspace.`
-- `Show me a tree of the workspace.`
-
-Claude should ask for approval before using the tools.
-
----
-
-## 12. Troubleshooting
-
-### Problem: nothing shows up in Claude Desktop
-
-Try these in order:
-1. Quit Claude Desktop fully and reopen it
-2. Re-check your JSON syntax
-3. Make sure your paths are absolute, not relative
-4. Manually run the same command in Command Prompt to see if Python errors appear
-
-Example manual run:
-
-```bat
-"C:\Users\YourName\AppData\Local\Programs\Python\Python311\python.exe" "C:\Users\YourName\Documents\filesystem-mcp\main.py"
+```json
+{
+  "mcpServers": {
+    "ghidra": {
+      "command": "python",
+      "args": [
+        "C:/Users/kaido/Documents/GhidraMCP-release-1-2/bridge_mcp_ghidra.py",
+        "--ghidra-server",
+        "http://127.0.0.1:8080/"
+      ]
+    },
+    "mcp-forensic-toolkit": {
+      "command": "C:\\Users\\kaido\\AppData\\Local\\pypoetry\\Cache\\virtualenvs\\mcp-forensic-toolkit-oRbbFZcU-py3.11\\Scripts\\mcp.exe",
+      "args": [
+        "run",
+        "C:\\Users\\kaido\\Desktop\\ForesnsicTools\\mcp-forensic-toolkit\\mcp_forensic_toolkit\\server.py"
+      ]
+    },
+    "filesystem": {
+      "command": "python",
+      "args": [
+        "C:\\Users\\kaido\\Documents\\filesystem-mcp\\main.py"
+      ]
+    }
+  },
+  "preferences": {
+    "coworkScheduledTasksEnabled": false,
+    "sidebarMode": "chat",
+    "coworkWebSearchEnabled": true,
+    "ccdScheduledTasksEnabled": false
+  }
+}
 ```
 
-If it just sits there silently, that is normal for an MCP stdio server.
-If it throws an import or syntax error, fix that first.
-
-### Problem: `No module named mcp`
-
-Install the dependency again:
-
-```bat
-python -m pip install -r requirements.txt
-```
-
-### Problem: server disconnects immediately
-
-The most common causes are:
-- wrong Python path
-- wrong `main.py` path
-- bad JSON in Claude config
-- a `print()` or other stdout output in normal MCP mode
-
-This rewritten server avoids stdout output during `mcp.run(transport="stdio")`, which is required for stdio servers.
-
-### Problem: where are Claude Desktop logs?
-
-The MCP local-server docs say Claude Desktop writes logs here:
-
-- **macOS:** `~/Library/Logs/Claude`
-- **Windows:** `%APPDATA%\Claude\logs`
-
-Look for:
-- `mcp.log`
-- `mcp-server-SERVERNAME.log`
-
 ---
 
-## 13. Optional: desktop extensions (`.mcpb`)
+## 10. Where to Put the Claude Config File
 
-Claude Desktop now also supports local MCP servers through **desktop extensions** installed from a `.mcpb` file.
-The support docs say:
-
-1. Go to **Settings > Extensions**
-2. Open **Advanced settings**
-3. Click **Install Extension…**
-4. Select the `.mcpb` file
-
-Claude Desktop also supports **Node.js, Python, and binary** desktop extensions.
-
-For this project, the **simplest setup** is still the config-file method above.
-If you later want a one-click install bundle, you can package the server as an `.mcpb` extension.
-
----
-
-## 14. Why this version is safer than the old one
-
-This version is better for Claude Desktop because it:
-- uses `mcp.run(transport="stdio")`
-- avoids startup stdout output in normal mode
-- keeps all file access restricted to one hardcoded workspace folder
-- uses absolute-path-friendly setup in the README
-
----
-
-## 15. requirements.txt
-
-This project uses:
+On Windows, Claude Desktop commonly uses:
 
 ```text
-mcp[cli]>=1.2.0
+%APPDATA%\Claude\claude_desktop_config.json
+```
+
+A typical full path looks like:
+
+```text
+C:\Users\kaido\AppData\Roaming\Claude\claude_desktop_config.json
+```
+
+If you already edited this file for other MCP servers, just add the `filesystem` entry into that same file.
+
+---
+
+## 11. Restart Claude Desktop
+
+After saving:
+- `main.py`
+- your Claude Desktop config file
+
+fully close Claude Desktop and open it again.
+
+If the server starts correctly, Claude Desktop should detect the MCP server and make its tools available.
+
+---
+
+## 12. If `python` Does Not Work in Claude Desktop
+
+Sometimes Claude Desktop cannot find `python` from PATH.
+
+If that happens, replace this:
+
+```json
+"command": "python"
+```
+
+with the full path to Python, for example:
+
+```json
+"command": "C:\\Users\\kaido\\AppData\\Local\\Programs\\Python\\Python311\\python.exe"
+```
+
+Then keep the script path in `args`.
+
+Example:
+
+```json
+"filesystem": {
+  "command": "C:\\Users\\kaido\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+  "args": [
+    "C:\\Users\\kaido\\Documents\\filesystem-mcp\\main.py"
+  ]
+}
 ```
 
 ---
 
-## 16. Quick setup checklist
+## 13. Common Problems
 
-1. Put the files in one folder
-2. Edit `ROOT_DIR` in `main.py`
-3. Run `python -m pip install -r requirements.txt`
-4. Run `python main.py test`
-5. Find your full Python path with `where python`
-6. Open Claude Desktop → Settings → Developer → Edit Config
-7. Paste the JSON config with absolute paths
-8. Restart Claude Desktop
-9. Test a simple file command in chat
+### Problem: `No module named mcp`
+Install the package in the same Python environment Claude Desktop is using:
 
-If you do those steps in order, this should be the cleanest way to get your Python filesystem MCP server working with Claude Desktop.
+```bash
+python -m pip install mcp
+```
+
+### Problem: Claude Desktop does not show the server
+Check:
+- the JSON is valid
+- the path to `main.py` is correct
+- `python` is actually available to Claude Desktop
+- the server runs locally with `python main.py test`
+
+### Problem: The workspace folder is not where expected
+Remember, the server now uses:
+
+```python
+Path.home() / "Documents" / "my_workspace"
+```
+
+So the folder is based on the user account running the process.
+
+### Problem: Folder will not delete
+If the folder is not empty, use recursive deletion through the tool:
+
+```python
+remove_directory("myfolder", recursive=True)
+```
+
+Be careful with that.
+
+---
+
+## 14. Recommended First Test in Claude Desktop
+
+1. Make sure `main.py` is saved.
+2. Add the `filesystem` server to Claude config.
+3. Restart Claude Desktop.
+4. Ask Claude to do something simple in the workspace, like:
+   - list files in the workspace
+   - read `README.txt`
+   - create a file named `test.txt`
+
+If that works, the server is connected properly.
+
+---
+
+## 15. Final Notes
+
+This version is better than the earlier hardcoded one because:
+- it does not depend on a specific username
+- it auto-creates the workspace for the current user
+- it is safer for Claude Desktop stdio MCP mode
+
+You can still customize it later with:
+- file extension blocking
+- read-only folders
+- maximum file size limits
+- logging
+- confirmation rules before delete operations

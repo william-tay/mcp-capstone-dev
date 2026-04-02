@@ -1,19 +1,12 @@
 """
-Filesystem MCP Server
+Filesystem MCP Server for Claude Desktop
 
-Claude Desktop / stdio-safe version.
-
-Use with Claude Desktop by pointing the client at this script with an absolute
-path to python.exe and an absolute path to this file.
-
-For local manual testing only:
-    python main.py test
-
-For MCP / Claude Desktop:
+Normal mode (for Claude Desktop MCP):
     python main.py
-"""
 
-from __future__ import annotations
+Local test mode:
+    python main.py test
+"""
 
 import base64
 import fnmatch
@@ -25,14 +18,16 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-# IMPORTANT:
-# Change this to the real folder you want Claude to be allowed to access.
-ROOT_DIR = Path(r"C:\Users\YourName\Documents\my_workspace").resolve()
+# Create an MCP server
+mcp = FastMCP("Filesystem")
 
-# Create the workspace folder if it does not exist.
+# Automatically use the current user's home folder
+ROOT_DIR = (Path.home() / "Documents" / "my_workspace").resolve()
+
+# Create the workspace folder if it does not exist
 ROOT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Create a starter file so the workspace is not empty.
+# Create a starter file so the workspace is not empty
 README_PATH = ROOT_DIR / "README.txt"
 if not README_PATH.exists():
     README_PATH.write_text(
@@ -41,14 +36,15 @@ if not README_PATH.exists():
         encoding="utf-8",
     )
 
-# FastMCP server.
-mcp = FastMCP("filesystem")
-
 
 # --- Path / Safety Helpers ---
 
 def _resolve_path(user_path: str) -> Path:
-    """Resolve a user-supplied path safely inside ROOT_DIR."""
+    """
+    Resolve a user-supplied path safely inside ROOT_DIR.
+    Absolute paths are interpreted relative to ROOT_DIR's rootless form,
+    and any attempt to escape ROOT_DIR is rejected.
+    """
     if user_path is None:
         raise ValueError("Path cannot be None.")
 
@@ -58,7 +54,7 @@ def _resolve_path(user_path: str) -> Path:
 
     candidate = Path(raw)
 
-    # Force all work to stay under ROOT_DIR.
+    # Force all work to stay under ROOT_DIR
     if candidate.is_absolute():
         candidate = Path(*candidate.parts[1:])
 
@@ -117,11 +113,7 @@ def path_exists(path: str) -> dict[str, Any]:
 
 
 @mcp.tool()
-def list_directory(
-    path: str = ".",
-    recursive: bool = False,
-    include_hidden: bool = False,
-) -> list[dict[str, Any]]:
+def list_directory(path: str = ".", recursive: bool = False, include_hidden: bool = False) -> list[dict[str, Any]]:
     """List files and directories inside a directory."""
     target = _resolve_path(path)
     if not target.exists():
@@ -247,8 +239,8 @@ def replace_in_file(
         raise IsADirectoryError(f"'{path}' is a directory, not a file.")
 
     content = target.read_text(encoding=encoding)
-    occurrences = content.count(old_text)
 
+    occurrences = content.count(old_text)
     if occurrences == 0:
         return {
             "path": _to_relative(target),
@@ -338,9 +330,7 @@ def move_path(source_path: str, destination_path: str, overwrite: bool = False) 
 
     if destination.exists():
         if not overwrite:
-            raise FileExistsError(
-                f"Destination '{destination_path}' already exists and overwrite=False."
-            )
+            raise FileExistsError(f"Destination '{destination_path}' already exists and overwrite=False.")
         if destination.is_dir() and not source.is_dir():
             raise IsADirectoryError("Cannot overwrite a directory with a file.")
         if destination.is_file() and source.is_dir():
@@ -366,9 +356,7 @@ def copy_path(source_path: str, destination_path: str, overwrite: bool = False) 
 
     if destination.exists():
         if not overwrite:
-            raise FileExistsError(
-                f"Destination '{destination_path}' already exists and overwrite=False."
-            )
+            raise FileExistsError(f"Destination '{destination_path}' already exists and overwrite=False.")
         if destination.is_dir():
             shutil.rmtree(destination)
         else:
@@ -571,8 +559,6 @@ def directory_tree(path: str = ".", max_depth: int = 3, include_hidden: bool = F
     return "\n".join(lines)
 
 
-# --- Optional Prompt ---
-
 @mcp.prompt()
 def filesystem_assistant_prompt(task: str) -> str:
     """Generate a prompt telling an AI assistant to complete a filesystem task carefully."""
@@ -631,19 +617,12 @@ def _run_local_test() -> None:
                 print(directory_tree(path))
             else:
                 print("Unknown command or missing arguments.")
-        except Exception as exc:  # pragma: no cover - local test helper
+        except Exception as exc:
             print(f"Error: {exc}")
 
 
-def main() -> None:
+if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1].lower() == "test":
         _run_local_test()
-        return
-
-    # IMPORTANT for stdio MCP servers:
-    # do not print anything to stdout before or during mcp.run().
-    mcp.run(transport="stdio")
-
-
-if __name__ == "__main__":
-    main()
+    else:
+        mcp.run(transport="stdio")
