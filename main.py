@@ -1,28 +1,46 @@
-"""
-Phrase Registry MCP Server Example
-
-Run from the `examples/snippets/clients` directory:
-    uv run server phrase_registry stdio
-Or, for local testing:
-    python main.py test
-"""
-
+import hashlib
 import json
 import os
+import secrets
 import sys
+import time
 from mcp.server.fastmcp import FastMCP
 
-# Create an MCP server
 mcp = FastMCP("PhraseRegistry")
 
-# Path to the JSON database file
-DB_PATH = "phrases_db.json"
+
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "phrases_db.json")
+
+USERS = {
+    os.environ.get("REGISTRY_USER", "admin"): hashlib.sha256(
+        os.environ.get("REGISTRY_PASS", "password123").encode()
+    ).hexdigest()
+}
+
+active_tokens: dict = {}
+TOKEN_TTL = 3600
 
 
-# --- Database Helpers ---
+def _issue_token(username: str) -> str:
+    token = secrets.token_hex(16)
+    active_tokens[token] = {
+        "username": username,
+        "expires": time.time() + TOKEN_TTL,
+    }
+    return token
+
+
+def _verify_token(token: str) -> bool:
+    entry = active_tokens.get(token)
+    if not entry:
+        return False
+    if time.time() > entry["expires"]:
+        del active_tokens[token]
+        return False
+    return True
+
 
 def load_db():
-    """Load phrases from the JSON database, or return an empty list if not found."""
     if os.path.exists(DB_PATH):
         with open(DB_PATH, "r") as f:
             return json.load(f)
@@ -30,21 +48,25 @@ def load_db():
 
 
 def save_db(data):
-    """Save phrases to the JSON database."""
     with open(DB_PATH, "w") as f:
         json.dump(data, f, indent=4)
 
 
-# --- Core Tool ---
+@mcp.tool()
+def login(username: str, password: str):
+    hashed = hashlib.sha256(password.encode()).hexdigest()
+    if USERS.get(username) == hashed:
+        token = _issue_token(username)
+        return {"status": "success", "token": token}
+    return {"status": "error", "message": "Invalid username or password"}
+
 
 @mcp.tool()
-def register_phrase(phrase: str) -> str:
-    """
-    Scan a phrase, and if it matches trigger words like 'hi' or 'hello',
-    store it in the phrase registry (database).
-    """
-    trigger_words = {"hi", "hello", "hey", "greetings"}
+def register_phrase(phrase: str, token: str):
+    if not _verify_token(token):
+        return {"status": "error", "message": "Unauthorized"}
 
+    trigger_words = {"hi", "hello", "hey", "greetings"}
     phrase_clean = phrase.strip().lower()
     data = load_db()
 
@@ -52,43 +74,35 @@ def register_phrase(phrase: str) -> str:
         if phrase_clean not in data:
             data.append(phrase_clean)
             save_db(data)
-            return f"Phrase '{phrase_clean}' stored in the registry."
+            return {"status": "success", "message": f"Stored '{phrase_clean}'"}
         else:
-            return f"Phrase '{phrase_clean}' is already in the registry."
+            return {"status": "info", "message": f"'{phrase_clean}' already exists"}
     else:
-        return f"Phrase '{phrase_clean}' is not a recognized trigger word."
+        return {"status": "error", "message": "Not a trigger word"}
 
-
-# --- Optional: View stored phrases ---
 
 @mcp.tool()
-def list_phrases() -> list:
-    """List all stored phrases in the registry."""
-    return load_db()
+def list_phrases(token: str):
+    if not _verify_token(token):
+        return {"status": "error", "message": "Unauthorized"}
+    return {"status": "success", "data": load_db()}
 
-
-# --- Optional: Clear all phrases ---
 
 @mcp.tool()
-def clear_registry() -> str:
-    """Clear all stored phrases."""
+def clear_registry(token: str):
+    if not _verify_token(token):
+        return {"status": "error", "message": "Unauthorized"}
     save_db([])
-    return "Phrase registry cleared."
+    return {"status": "success", "message": "Registry cleared"}
 
-
-# --- Example resource (still usable) ---
 
 @mcp.resource("greeting://{name}")
 def get_greeting(name: str) -> str:
-    """Return a personalized greeting."""
     return f"Hello, {name}!"
 
 
-# --- Example prompt (still usable) ---
-
 @mcp.prompt()
 def greet_user(name: str, style: str = "friendly") -> str:
-    """Generate a greeting prompt."""
     styles = {
         "friendly": "Please write a warm, friendly greeting",
         "formal": "Please write a formal, professional greeting",
@@ -97,19 +111,28 @@ def greet_user(name: str, style: str = "friendly") -> str:
     return f"{styles.get(style, styles['friendly'])} for someone named {name}."
 
 
-# --- Run the server (standard entrypoint) OR local test mode ---
-
 if __name__ == "__main__":
-    # Check if "test" argument was provided
     if len(sys.argv) > 1 and sys.argv[1].lower() == "test":
         print("Running Phrase Registry in local test mode.\n")
+
+        username = input("Username: ").strip()
+        password = input("Password: ").strip()
+        result = login(username, password)
+        print(result)
+
+        if result.get("status") != "success":
+            sys.exit(1)
+
+        token = result["token"]
+
         while True:
-            phrase = input("Enter a phrase (or 'quit' to exit): ").strip()
+            phrase = input("\nEnter a phrase (or 'quit' to exit): ").strip()
             if phrase.lower() == "quit":
                 print("Goodbye.")
                 break
-            print(register_phrase(phrase))
-        print("\nAll stored phrases:", load_db())
+            print(register_phrase(phrase, token))
+
+        print("\nAll stored phrases:", list_phrases(token))
     else:
         print("Starting Phrase Registry MCP server...")
         mcp.run()
