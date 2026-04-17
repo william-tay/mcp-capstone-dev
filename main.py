@@ -11,7 +11,7 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("PhraseRegistry")
 
-DB_PATH = "phrases_db.json"
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "phrases_db.json")
 
 
 #  Database Helpers #
@@ -44,26 +44,31 @@ def login(username: str, password: str) -> str:
 
 @mcp.tool()
 def register_phrase(phrase: str) -> str:
-    """
-    Scan a phrase, and if it matches trigger words like 'hi' or 'hello',
-    store it in the phrase registry (database).
-    """
-    trigger_words = {"hi", "hello", "hey", "greetings"}
-
+    """Store any phrase in the phrase registry."""
     phrase_clean = phrase.strip().lower()
     data = load_db()
 
-    if phrase_clean in trigger_words:
-        if phrase_clean not in data:
-            data.append(phrase_clean)
-            save_db(data)
-            return f"Phrase '{phrase_clean}' stored in the registry."
-        else:
-            return f"Phrase '{phrase_clean}' is already in the registry."
+    if phrase_clean not in data:
+        data.append(phrase_clean)
+        save_db(data)
+        return f"Phrase '{phrase_clean}' stored in the registry."
     else:
-        return f"Phrase '{phrase_clean}' is not a recognized trigger word."
+        return f"Phrase '{phrase_clean}' is already in the registry."
 
-# Tool to list all stored phrases in the registry
+
+@mcp.tool()
+def delete_phrase(phrase: str) -> str:
+    """Delete a phrase from the registry by name."""
+    phrase_clean = phrase.strip().lower()
+    data = load_db()
+
+    if phrase_clean in data:
+        data.remove(phrase_clean)
+        save_db(data)
+        return f"Phrase '{phrase_clean}' has been removed from the registry."
+    else:
+        return f"Phrase '{phrase_clean}' was not found in the registry."
+
 
 @mcp.tool()
 def list_phrases() -> list:
