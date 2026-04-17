@@ -77,5 +77,4 @@ def list_phrases() -> list:
 
 
 if __name__ == "__main__":
-    print("Starting Phrase Registry MCP server...")
     mcp.run()
