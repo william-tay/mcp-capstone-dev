@@ -1,4 +1,4 @@
-Phrase Registry MCP Server (Base Template)
+Phrase Registry MCP Server (Source code):
 
 This project provides a simple MCP server template built with FastMCP. 
 
