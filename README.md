@@ -38,11 +38,16 @@ Run from the examples/snippets/clients directory:
 uv run server phrase_registry stdio
 
 
-This branch is intentionally simple and serves as a foundation for:
+
+
+
+This branch serves as a foundation for:
 
 Adding proper authentication and session handling (User Login Server branch)
 
 Extending functionality to handle file uploads and storage (File Upload Server branch)
+
+
 
 Notes:
 
