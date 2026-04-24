@@ -1,6 +1,6 @@
 Phrase Registry MCP Server (Source code):
 
-This project provides a simple MCP server template built with FastMCP. 
+This project provides a  MCP server template built with FastMCP. 
 
 It serves as the base implementation for two extended branches:
 
