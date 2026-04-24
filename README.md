@@ -41,8 +41,13 @@ uv run server phrase_registry stdio
 This branch is intentionally simple and serves as a foundation for:
 
 Adding proper authentication and session handling (User Login Server branch)
+
 Extending functionality to handle file uploads and storage (File Upload Server branch)
-Notes
+
+Notes:
+
 Authentication is not secure (for demonstration only)
+
 No concurrency or validation safeguards are implemented
-Designed for learning and extension, not production use
+
+Designed for a starting point to base each of the MCP sever branches
