@@ -1,12 +1,16 @@
 Phrase Registry MCP Server (Base Template)
 
-This project provides a simple MCP server template built with FastMCP. It serves as the base implementation for two extended branches:
+This project provides a simple MCP server template built with FastMCP. 
+
+It serves as the base implementation for two extended branches:
 
 User Login Server
 File Upload Server
-Overview
 
-The server implements a minimal phrase registry system backed by a JSON file. It demonstrates:
+
+The server implements a minimal phrase registry system backed by a JSON file. 
+
+It demonstrates:
 
 MCP tool registration
 Basic request handling
@@ -25,12 +29,14 @@ Data Storage
 Uses a local file: phrases_db.json
 Stores phrases as a simple list
 Automatically creates the file if it does not exist
+
+
 Running the Server
 
 Run from the examples/snippets/clients directory:
 
 uv run server phrase_registry stdio
-Purpose as a Base Branch
+
 
 This branch is intentionally simple and serves as a foundation for:
 
