@@ -34,7 +34,7 @@ It demonstrates:
 - Automatically creates the file if it does not exist  
 
 ## Running the Server
-Run from the `examples/snippets/clients` directory:
+Run this command in python terminal:
 
 ```bash
 uv run server phrase_registry stdio
